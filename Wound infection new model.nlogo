@@ -7,11 +7,10 @@ globals
   Macrophage-Strength
   Neutrophil-Homing-Range
   ShowDebris
-  Resistance
+  ;strength
 ]
 
-breed [bacteria bacterium]         ; this is the sub-category of turtles that are normal bacterial cells
-breed [strongbacteria strongbacterium]         ; this is the sub-category of turtles that are a stronger strain of bacterial cells
+breed [bacteria bacterium]         ; this is the sub-category of turtles that are bacterial cells
 breed [neutrophils neutrophil]    ; this is the first wave of immunes cells, they release anti-microbial cytokines and can also phagocytose bacteria
 breed [macrophages macrophage]     ; this is the second wave of immune cells, the phagocytes that "clean up" debris and remove aged neutrophils
 
@@ -46,20 +45,12 @@ end
 
 to Run-Simulation
   proliferate-bacteria
-  proliferate-strongbacteria
   proliferate-neutrophils
   proliferate-macrophages
   migrate
   Leukocyte-Actions
 
   if any? bacteria [
-    if Neutrophil_Response = "Low" and ticks mod 3 = 0 [create-neutrophils ceiling (.1 * Immune-Cell-Infiltration) [setxy random-xcor random-ycor setxy pycor pxcor set shape "neutrophil" set age 1]]
-    if Neutrophil_Response = "Normal" [create-neutrophils ceiling (1 * Immune-Cell-Infiltration)[setxy random-xcor random-ycor setxy pycor pxcor set shape "neutrophil" set age 1]]
-    if Neutrophil_Response = "High" [create-neutrophils ceiling (2 * Immune-Cell-Infiltration) [setxy random-xcor random-ycor setxy pycor pxcor set shape "neutrophil" set age 1]]
-
-  ]
-
-  if any? strongbacteria [ ; Same as bacteria. We can change the recruitment of immune cells
     if Neutrophil_Response = "Low" and ticks mod 3 = 0 [create-neutrophils ceiling (.1 * Immune-Cell-Infiltration) [setxy random-xcor random-ycor setxy pycor pxcor set shape "neutrophil" set age 1]]
     if Neutrophil_Response = "Normal" [create-neutrophils ceiling (1 * Immune-Cell-Infiltration)[setxy random-xcor random-ycor setxy pycor pxcor set shape "neutrophil" set age 1]]
     if Neutrophil_Response = "High" [create-neutrophils ceiling (2 * Immune-Cell-Infiltration) [setxy random-xcor random-ycor setxy pycor pxcor set shape "neutrophil" set age 1]]
@@ -103,46 +94,18 @@ to infect
     ]
   ]
 
-  ask patch 0 0 [
-    ask n-of Initial-Strong-Bacteria patches in-radius 15[
-      sprout 1        ; create the number of initial bacteria as designated by the slider on the interface tab
-      [
-        set breed strongbacteria              ; denote the 'breed' of the turtle as an "bacteria" cell
-        set shape "bug"            ; denote the shape of the turtle as an bacteria cell shape
-        set color green               ; denote thec olor of the turtle as green
-        set age random prolif-rate
-      ]
-    ]
-  ]
 end
 
 to proliferate-bacteria         ; this sub-routine simulates cell proliferation without any contact inhibition  [
   ask bacteria [
-      if age mod prolif-rate = 0 and count bacteria-on neighbors + count strongbacteria-on neighbors < 8                 ; cell division happens for every cell at the same time (i.e. clock tick) according to the 'prolif-rate' set on the interface tab. See 'proliferate' sub-routine below.
+      if age mod prolif-rate = 0 and count bacteria-on neighbors < 8                 ; cell division happens for every cell at the same time (i.e. clock tick) according to the 'prolif-rate' set on the interface tab. See 'proliferate' sub-routine below.
       [
         hatch 1 [
           let attempted-moves  0
-          while [any? other bacteria-here and any? other strongbacteria-here and attempted-moves < 16]
+          while [any? other bacteria-here and attempted-moves < 16]
           [
-            if not any? neighbors with [wound = 1 and not any? strongbacteria-here and not any? bacteria-here][die]
-            move-to one-of neighbors with [wound = 1 and not any? strongbacteria-here and not any? bacteria-here]
-            set attempted-moves attempted-moves + 1]
-
-        ]
-      ]
-    ]
-end
-
-to proliferate-strongbacteria         ; this sub-routine simulates cell proliferation without any contact inhibition  [
-  ask strongbacteria [
-    if age mod prolif-rate = 0 and count bacteria-on neighbors + count strongbacteria-on neighbors < 8                 ; cell division happens for every cell at the same time (i.e. clock tick) according to the 'prolif-rate' set on the interface tab. See 'proliferate' sub-routine below.
-      [
-        hatch 1 [
-          let attempted-moves  0
-          while [any? other bacteria-here and any? other strongbacteria-here and attempted-moves < 16]
-          [
-            if not any? neighbors with [wound = 1 and not any? strongbacteria-here and not any? bacteria-here][die]
-            move-to one-of neighbors with [wound = 1 and not any? strongbacteria-here and not any? bacteria-here]
+            if not any? neighbors with [wound = 1 and not any? bacteria-here][die]
+            move-to one-of neighbors with [wound = 1 and not any? bacteria-here]
             set attempted-moves attempted-moves + 1]
 
         ]
@@ -189,17 +152,9 @@ to migrate
   [
     ask bacteria
     [
-      if any? neighbors with [not any? bacteria-here and not any? strongbacteria-here and wound = 1]            ; migration only occurs if there is at least one empty neighboring patch
+      if any? neighbors with [not any? bacteria-here and wound = 1]            ; migration only occurs if there is at least one empty neighboring patch
       [
-        move-to one-of neighbors with [not any? bacteria-here and not any? strongbacteria-here] ; migrate to one of the 8 neighboring patches without a cell in it already
-      ]
-    ]
-
-    ask strongbacteria
-    [
-      if any? neighbors with [not any? bacteria-here and not any? strongbacteria-here and wound = 1]            ; migration only occurs if there is at least one empty neighboring patch
-      [
-        move-to one-of neighbors with [not any? bacteria-here and not any? strongbacteria-here] ; migrate to one of the 8 neighboring patches without a cell in it already
+        move-to one-of neighbors with [not any? bacteria-here] ; migrate to one of the 8 neighboring patches without a cell in it already
       ]
     ]
   ]
@@ -215,8 +170,8 @@ to migrate
 
   ask macrophages
   [
-    ifelse any? bacteria-on neighbors or any? strongbacteria-on neighbors or any? neighbors with [debris > 0]
-    [move-to one-of neighbors with [any? bacteria-here or any? strongbacteria-here or debris > 0]]
+    ifelse any? bacteria-on neighbors or any? neighbors with [debris > 0]
+    [move-to one-of neighbors with [any? bacteria-here or debris > 0]]
     [move-to one-of neighbors]
   ]
 end
@@ -224,17 +179,10 @@ end
 to Leukocyte-Actions
   ask neutrophils [if any? bacteria-on patch-here
     [
+      if random 100 < susceptibility[
       ask patch-here [set debris debris + (count bacteria-here)]
       ask bacteria-on patch-here [die]
     ]
-  ]
-
-  ask neutrophils [if any? strongbacteria-on patch-here
-    [
-      if random 100 < Resistance[
-        ask patch-here [set debris debris + (count strongbacteria-here)]
-        ask strongbacteria-on patch-here [die]
-      ]
     ]
   ]
 
@@ -242,14 +190,6 @@ to Leukocyte-Actions
     [ask bacteria-on patch-here [die]]
     if [debris] of patch-here > 0
     [ask patch-here [set debris debris - Macrophage-Strength]]
-  ]
-
-  ask macrophages [if any? strongbacteria-on patch-here [
-    if random 100 < 30[
-      ask bacteria-on patch-here [die]]
-      if [debris] of patch-here > 0
-      [ask patch-here [set debris debris - Macrophage-Strength]]
-    ]
   ]
 
 end
@@ -325,7 +265,7 @@ Initial-bacteria
 Initial-bacteria
 0
 100
-50.0
+20.0
 1
 1
 NIL
@@ -375,7 +315,7 @@ MONITOR
 279
 95
 Number of Bacteria
-count bacteria + count strongbacteria
+count bacteria
 1
 1
 11
@@ -517,7 +457,6 @@ PENS
 "Bacteria" 1.0 0 -4079321 true "" "plot count bacteria"
 "Neutrophils" 1.0 0 -11221820 true "" "plot count neutrophils"
 "Macrophages" 1.0 0 -10141563 true "" "plot count macrophages"
-"Resistant Bacteria" 1.0 0 -5825686 true "" "plot count strongbacteria"
 
 MONITOR
 420
@@ -549,15 +488,15 @@ PENS
 "debris" 1.0 0 -8431303 true "" "plot count patches with [pcolor > 29] / 709 * 100 \n"
 
 SLIDER
-400
-107
-572
-140
-Initial-strong-bacteria
-Initial-strong-bacteria
-0
+332
+61
+504
+94
+susceptibility
+susceptibility
+50
 100
-0.0
+90.0
 1
 1
 NIL
@@ -963,15 +902,14 @@ NetLogo 6.2.0
 @#$#@#$#@
 @#$#@#$#@
 <experiments>
-  <experiment name="example experiment" repetitions="1" runMetricsEveryStep="true">
+  <experiment name="example experiment" repetitions="10" runMetricsEveryStep="true">
     <setup>setup
 infect</setup>
     <go>run-simulation</go>
+    <timeLimit steps="168"/>
     <metric>count bacteria</metric>
     <metric>count neutrophils</metric>
     <metric>count macrophages</metric>
-    <metric>count strongbacteria</metric>
-    <metric>count patches with [pcolor &gt; 29] / 709 * 100</metric>
     <enumeratedValueSet variable="Macrophage_response">
       <value value="&quot;Normal&quot;"/>
     </enumeratedValueSet>
@@ -985,10 +923,15 @@ infect</setup>
       <value value="2"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="Initial-bacteria">
-      <value value="50"/>
+      <value value="20"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="Initial-strong-bacteria">
-      <value value="0"/>
+    <enumeratedValueSet variable="susceptibility">
+      <value value="50"/>
+      <value value="60"/>
+      <value value="70"/>
+      <value value="80"/>
+      <value value="90"/>
+      <value value="100"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>
